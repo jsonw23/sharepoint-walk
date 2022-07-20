@@ -1,4 +1,6 @@
 import requests
+from .DriveItem import DriveItem, File, Folder
+
 
 class SharePointWalker:
     app = None
@@ -23,10 +25,11 @@ class SharePointWalker:
             folders = []
             files = []
             for child in children:
-                if 'folder' in child:
-                    folders.append(child)
-                if 'file' in child:
-                    files.append(child)
+                driveItem = DriveItem.encapsulate(child)
+                if isinstance(driveItem, Folder):
+                    folders.append(driveItem)
+                if isinstance(driveItem, File):
+                    files.append(driveItem)
 
             yield (rootPath, folders, files)
 
@@ -34,12 +37,12 @@ class SharePointWalker:
                 folderStack.append(folders[::-1])
                 rootStack = rootPath.split('/')
             
-            nextFolder = folderStack[-1].pop()
+            nextFolder: DriveItem = folderStack[-1].pop()
             if not len(folderStack[-1]):
                 folderStack.pop()
-            rootPath = nextFolder['parentReference']['path'].split(':')[1][1:] + '/' + nextFolder['name']
+            rootPath = nextFolder.path
 
-            children = self.__fetchGraphPaginated(f"/drives/{driveID}/root:/{rootPath}:/children")
+            children = self.__fetchGraphPaginated(f"/drives/{driveID}/root:{rootPath}:/children")
 
 
     def __findLocation(self, location: str):
