@@ -9,7 +9,7 @@ setuptools.setup(
     description="Walk sharepoint files",
     long_description="",
     long_description_content_type="text/markdown",
-    url="https://github.com/gituser/test-tackage",
+    url="https://github.com/jsonw23/sharepoint-walk",
     license='MIT',
     python_requires='>=3.10',
     install_requires=[
