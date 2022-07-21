@@ -1,14 +1,11 @@
-import requests
+from .GraphApp import GraphApp
 from .DriveItem import DriveItem, File, Folder
 
 
 class SharePointWalker:
-    app = None
-    tenant = None
 
-    def __init__(self, app, tenant):
+    def __init__(self, app: GraphApp):
         self.app = app
-        self.tenant = tenant
 
     def walk(self, location: str):
         (siteID, driveID, item, children) = self.__findLocation(location)
@@ -42,7 +39,7 @@ class SharePointWalker:
                 folderStack.pop()
             rootPath = nextFolder.path
 
-            children = self.__fetchGraphPaginated(f"/drives/{driveID}/root:{rootPath}:/children")
+            children = self.app.fetchGraphPaginated(f"/drives/{driveID}/root:{rootPath}:/children")
 
 
     def __findLocation(self, location: str):
@@ -53,12 +50,12 @@ class SharePointWalker:
         pathSegs = pathSegs[1:]
         
         # find the site
-        site = self.__fetchSite(siteUrl)
+        site = self.app.fetchSite(siteUrl)
         
         # find the drive
         drive = None
         if "id" in site:
-            drives = self.__fetchGraph(f"/sites/{site['id']}/drives")
+            drives = self.app.fetchGraph(f"/sites/{site['id']}/drives")
             for _drive in drives['value']:
                 if _drive['name'] == docLibrary:
                     drive = _drive
@@ -67,57 +64,9 @@ class SharePointWalker:
         parent = None
         children = None
         if "id" in drive:
-            children = self.__fetchGraphPaginated(f"/drives/{drive['id']}/root:/{'/'.join(pathSegs)}:/children")
+            children = self.app.fetchGraphPaginated(f"/drives/{drive['id']}/root:/{'/'.join(pathSegs)}:/children")
             if len(children):
                 # use the parent of the first item
                 parent = children[0]['parentReference']
         
         return (site['id'], drive['id'], parent, children)
-
-    def __fetchToken(self) -> str:
-        access_token = None
-        result = self.app.acquire_token_silent(["https://graph.microsoft.com/.default"], account=None)
-        if not result:
-            result = self.app.acquire_token_for_client(scopes=["https://graph.microsoft.com/.default"])
-
-        if "access_token" in result:
-            access_token = result['access_token']
-        else:
-            raise MSALError(result)
-
-        return access_token
-    
-    def __fetchSite(self, relUrl):
-        return self.__fetchGraph(f"/sites/{self.tenant}.sharepoint.com:{relUrl}")
-
-    def __fetchGraph(self, resource: str):
-        result = self.__fetch(f"https://graph.microsoft.com/v1.0{resource}")
-        if "error" in result:
-            raise GraphError(result)
-        else:
-            return result
-
-    def __fetchGraphPaginated(self, resource: str):
-        results = self.__fetchGraph(resource)
-        items = results['value']
-        while True:
-            if '@odata.nextLink' in results:
-                results = self.__fetch(results['@odata.nextLink'])
-                items += results['value']
-            else:
-                break
-        return items
-
-    def __fetch(self, url: str):
-        access_token = self.__fetchToken()
-        return requests.get(url, headers={
-            "Authorization": f"Bearer {access_token}"
-        }).json()
-
-
-
-class MSALError(Exception):
-    pass
-
-class GraphError(Exception):
-    pass

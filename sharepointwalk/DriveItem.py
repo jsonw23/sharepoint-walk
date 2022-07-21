@@ -1,6 +1,8 @@
 import requests
 import os
 
+from sharepointwalk.GraphApp import GraphApp
+
 class DriveItem:
 
     def __init__(self, driveItem):
@@ -13,6 +15,14 @@ class DriveItem:
     @property
     def path(self) -> str:
         return self.__driveItem['parentReference']['path'].split(':')[1] + '/' + self.name
+    
+    @property
+    def driveID(self) -> str:
+        return self.__driveItem['parentReference']['driveId']
+
+    @property
+    def parentID(self) -> str:
+        return self.__driveItem['parentReference']['id']
 
     def encapsulate(driveItem):
         if "folder" in driveItem:
@@ -37,3 +47,11 @@ class File(DriveItem):
 
 class Folder(DriveItem):
     pass
+
+def newFolder(app: GraphApp, driveID: str, parentID: str, name: str) -> Folder:
+    result = app.postGraph(f"/drives/{driveID}/items/{parentID}/children", json={
+        "name": name,
+        "folder": { },
+        "@microsoft.graph.conflictBehavior": "rename"
+    })
+    return Folder(result)
