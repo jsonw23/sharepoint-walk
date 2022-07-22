@@ -36,6 +36,13 @@ class GraphApp:
         else:
             return result
 
+    def putGraph(self, resource: str, data=None, json=None, type=None):
+        result = self.put(f"https://graph.microsoft.com/v1.0{resource}", data=data, json=json, type=type)
+        if "error" in result:
+            raise GraphError(result)
+        else:
+            return result
+
     def fetchGraphPaginated(self, resource: str):
         results = self.fetchGraph(resource)
         items = results['value']
@@ -58,6 +65,15 @@ class GraphApp:
         return requests.post(url, headers={
             "Authorization": f"Bearer {access_token}"
         }, data=data, json=json).json()
+
+    def put(self, url: str, data=None, json=None, type=None):
+        access_token = self.fetchToken()
+        headers = {
+            "Authorization": f"Bearer {access_token}"
+        }
+        if type:
+            headers["Content-Type"] = type
+        return requests.put(url, headers=headers, data=data, json=json).json()
 
 
 
