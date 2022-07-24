@@ -66,14 +66,20 @@ class GraphApp:
             "Authorization": f"Bearer {access_token}"
         }, data=data, json=json).json()
 
-    def put(self, url: str, data=None, json=None, type=None):
+    def put(self, url: str, data=None, json=None, type=None, headers=None):
         access_token = self.fetchToken()
-        headers = {
+        _headers = {
             "Authorization": f"Bearer {access_token}"
         }
         if type:
-            headers["Content-Type"] = type
-        return requests.put(url, headers=headers, data=data, json=json).json()
+            _headers["Content-Type"] = type
+        if headers and "Content-Range" in headers:
+            _headers["Content-Range"] = headers["Content-Range"]
+        response = requests.put(url, headers=_headers, data=data, json=json)
+        if response.ok:
+            return response.json()
+        else:
+            raise Exception(response.json())
 
 
 
