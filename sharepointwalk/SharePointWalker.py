@@ -17,6 +17,7 @@ class SharePointWalker:
         # - folders: list of driveitems that are folders
         # - files: list of driveitems that are files
         rootPath: str = item['path'].split(':')[1][1:]
+        rootFolder = Folder(item)
         folderStack = []
         while True:
             folders = []
@@ -28,7 +29,7 @@ class SharePointWalker:
                 if isinstance(driveItem, File):
                     files.append(driveItem)
 
-            yield (rootPath, folders, files)
+            yield (rootFolder, folders, files)
 
             if len(folders):
                 folderStack.append(folders[::-1])
@@ -40,6 +41,8 @@ class SharePointWalker:
             rootPath = nextFolder.path
 
             children = self.app.fetchGraphPaginated(f"/drives/{driveID}/root:{rootPath}:/children")
+            if len(children):
+                rootFolder = Folder(children[0]["parentReference"])
 
 
     def __findLocation(self, location: str):
