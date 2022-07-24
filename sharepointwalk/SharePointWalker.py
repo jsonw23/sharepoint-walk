@@ -1,4 +1,4 @@
-from .GraphApp import GraphApp
+from .GraphApp import GraphApp, GraphError
 from .DriveItem import DriveItem, File, Folder
 
 
@@ -40,9 +40,12 @@ class SharePointWalker:
                 folderStack.pop()
             rootPath = nextFolder.path
 
-            children = self.app.fetchGraphPaginated(f"/drives/{driveID}/root:{rootPath}:/children")
-            if len(children):
-                rootFolder = Folder(children[0]["parentReference"])
+            try:
+                children = self.app.fetchGraphPaginated(f"/drives/{driveID}/root:{rootPath}:/children")
+                if len(children):
+                    rootFolder = Folder(children[0]["parentReference"])
+            except GraphError as e:
+                children = []
 
 
     def __findLocation(self, location: str):
