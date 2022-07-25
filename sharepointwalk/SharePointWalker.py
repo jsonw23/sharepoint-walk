@@ -35,6 +35,10 @@ class SharePointWalker:
                 folderStack.append(folders[::-1])
                 rootStack = rootPath.split('/')
             
+            if not len(folderStack):
+                # no more to scan
+                return
+
             nextFolder: DriveItem = folderStack[-1].pop()
             if not len(folderStack[-1]):
                 folderStack.pop()
