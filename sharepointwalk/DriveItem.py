@@ -56,12 +56,23 @@ class File(DriveItem):
     def size(self) -> int:
         return self._DriveItem__driveItem["size"]
     
-    def download(self, to="") -> str:
+    def download(self, to="", app: GraphApp=None) -> str:
         path = os.path.join(to, self.name)
         r = requests.get(self._DriveItem__driveItem["@microsoft.graph.downloadUrl"])
-        with open(path, "wb") as dl:
-            dl.write(r.content)
-        return path
+        if r.ok:
+            with open(path, "wb") as dl:
+                dl.write(r.content)
+            return path
+        elif r.status_code == 401:
+            # download url is expired
+            if app:
+                result = app.fetchGraph(f"/drives/{self.driveID}/items/{self.id}")
+                if "@microsoft.graph.downloadUrl" in result:
+                    r = requests.get(result["@microsoft.graph.downloadUrl"])
+                    if r.ok:
+                        with open(path, "wb") as dl:
+                            dl.write(r.content)
+                        return path
 
 class Folder(DriveItem):
     
