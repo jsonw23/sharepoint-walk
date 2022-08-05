@@ -74,7 +74,10 @@ class SharePointWalker:
         parent = None
         children = None
         if "id" in drive:
-            children = self.app.fetchGraphPaginated(f"/drives/{drive['id']}/root:/{'/'.join(pathSegs)}:/children")
+            if len(pathSegs):
+                children = self.app.fetchGraphPaginated(f"/drives/{drive['id']}/root:/{'/'.join(pathSegs)}:/children")
+            else:
+                children = self.app.fetchGraphPaginated(f"/drives/{drive['id']}/root/children")
             if len(children):
                 # use the parent of the first item
                 parent = children[0]['parentReference']
