@@ -99,13 +99,14 @@ def uploadFile(app: GraphApp, parentFolder: Folder, path: str) -> File:
         return uploadLargeFile(app, parentFolder, path, info.st_size)
     else:
         with open(path, "rb") as f:
-            name = os.path.basename(path)
+            name = os.path.basename(path).replace('#', '%23').replace(':', '_').strip()
             result = app.putGraph(f"/drives/{parentFolder.driveID}/items/{parentFolder.id}:/{name}:/content", data=f.read(), type=type)
             return File(result)
 
 def uploadLargeFile(app: GraphApp, parent: Folder, path: str, size: int) -> File:
     # create an upload session
-    session = app.postGraph(f"/drives/{parent.driveID}/items/{parent.id}:/{os.path.basename(path)}:/createUploadSession", json={
+    name = os.path.basename(path).replace('#', '%23').replace(':', '_').strip()
+    session = app.postGraph(f"/drives/{parent.driveID}/items/{parent.id}:/{name}:/createUploadSession", json={
         "item": {
             "@microsoft.graph.conflictBehavior": "replace"
         }
