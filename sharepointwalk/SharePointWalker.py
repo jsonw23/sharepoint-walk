@@ -54,10 +54,15 @@ class SharePointWalker:
 
     def __findLocation(self, location: str):
         # /sites/SiteName:DocLibrary/path/to/start
-        [siteUrl, path] = location.split(":")
-        pathSegs = path.split("/")
-        docLibrary = pathSegs[0]
-        pathSegs = pathSegs[1:]
+        docLibrary = None
+        pathSegs = None
+        if ":" in location:
+            [siteUrl, path] = location.split(":")
+            pathSegs = path.split("/")
+            docLibrary = pathSegs[0]
+            pathSegs = pathSegs[1:]
+        else:
+            siteUrl = location
         
         # find the site
         site = self.app.fetchSite(siteUrl)
@@ -65,16 +70,19 @@ class SharePointWalker:
         # find the drive
         drive = None
         if "id" in site:
-            drives = self.app.fetchGraph(f"/sites/{site['id']}/drives")
-            for _drive in drives['value']:
-                if _drive['name'] == docLibrary:
-                    drive = _drive
+            if docLibrary:
+                drives = self.app.fetchGraph(f"/sites/{site['id']}/drives")
+                for _drive in drives['value']:
+                    if _drive['name'] == docLibrary:
+                        drive = _drive
+            else:
+                drive = self.app.fetchGraph(f"/sites/{site['id']}/drive")
 
         # find the item
         parent = None
         children = None
         if "id" in drive:
-            if len(pathSegs):
+            if pathSegs and len(pathSegs):
                 children = self.app.fetchGraphPaginated(f"/drives/{drive['id']}/root:/{'/'.join(pathSegs)}:/children")
             else:
                 children = self.app.fetchGraphPaginated(f"/drives/{drive['id']}/root/children")
