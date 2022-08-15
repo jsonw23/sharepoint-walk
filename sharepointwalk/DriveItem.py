@@ -1,3 +1,4 @@
+from datetime import datetime
 import mimetypes
 import requests
 import os
@@ -37,6 +38,11 @@ class DriveItem:
             return self.__driveItem['parentReference']['id']
         else:
             return None
+
+    @property
+    def created(self) -> datetime:
+        if 'createdDateTime' in self.__driveItem:
+            return datetime.fromisoformat(self.__driveItem['createdDateTime'].replace("Z", "+00:00"))
 
     def encapsulate(driveItem):
         if "folder" in driveItem:
