@@ -31,7 +31,7 @@ class GraphApp:
 
     def postGraph(self, resource: str, data=None, json=None):
         result = self.post(f"https://graph.microsoft.com/v1.0{resource}", data=data, json=json)
-        if "error" in result:
+        if result and "error" in result:
             raise GraphError(result)
         else:
             return result
@@ -43,8 +43,17 @@ class GraphApp:
         else:
             return result
 
+    def deleteGraph(self, resource: str):
+        result = self.delete(f"https://graph.microsoft.com/v1.0{resource}")
+        if "error" in result:
+            raise GraphError(result)
+        else:
+            return result
+
     def fetchGraphPaginated(self, resource: str):
         results = self.fetchGraph(resource)
+        if 'value' not in results:
+            return results
         items = results['value']
         while True:
             if '@odata.nextLink' in results:
@@ -64,7 +73,7 @@ class GraphApp:
         access_token = self.fetchToken()
         return requests.post(url, headers={
             "Authorization": f"Bearer {access_token}"
-        }, data=data, json=json).json()
+        }, data=data, json=json)
 
     def put(self, url: str, data=None, json=None, type=None, headers=None):
         access_token = self.fetchToken()
@@ -78,6 +87,17 @@ class GraphApp:
         response = requests.put(url, headers=_headers, data=data, json=json)
         if response.ok:
             return response.json()
+        else:
+            raise Exception(response.json())
+
+    def delete(self, url: str):
+        access_token = self.fetchToken()
+        _headers = {
+            "Authorization": f"Bearer {access_token}"
+        }
+        response = requests.delete(url, headers=_headers)
+        if response.ok:
+            return response
         else:
             raise Exception(response.json())
 

@@ -1,5 +1,6 @@
 from .GraphApp import GraphApp, GraphError
 from .DriveItem import DriveItem, File, Folder
+import urllib.parse
 
 
 class SharePointWalker:
@@ -16,7 +17,11 @@ class SharePointWalker:
         # - root: the path to the item, between the ':'s in the item['path']
         # - folders: list of driveitems that are folders
         # - files: list of driveitems that are files
-        rootPath: str = item['path'].split(':')[1][1:]
+        if 'path' in item:
+            rootPath: str = item['path'].split(':')[1][1:]
+        else:
+            url = urllib.parse.unquote(item['webUrl'])
+            rootPath = ""
         rootFolder = Folder(item)
         folderStack = []
         while True:
@@ -49,6 +54,8 @@ class SharePointWalker:
                 if len(children):
                     rootFolder = Folder(children[0]["parentReference"])
             except GraphError as e:
+                children = []
+            except KeyError:
                 children = []
 
 
@@ -89,5 +96,10 @@ class SharePointWalker:
             if len(children):
                 # use the parent of the first item
                 parent = children[0]['parentReference']
+            else:
+                if pathSegs and len(pathSegs):
+                    parent = self.app.fetchGraph(f"/drives/{drive['id']}/root:/{'/'.join(pathSegs)}")
+                else:
+                    parent = self.app.fetchGraph(f"/drives/{drive['id']}/root")
         
         return (site['id'], drive['id'], parent, children)

@@ -20,6 +20,10 @@ class DriveItem:
     @property
     def path(self) -> str:
         return self.__driveItem['parentReference']['path'].split(':')[1] + '/' + self.name
+    
+    @property
+    def size(self) -> int:
+        return self.__driveItem['size']
 
     @property
     def id(self) -> str:
@@ -44,6 +48,16 @@ class DriveItem:
         if 'createdDateTime' in self.__driveItem:
             return datetime.fromisoformat(self.__driveItem['createdDateTime'].replace("Z", "+00:00"))
 
+    @property
+    def modified(self) -> datetime:
+        if 'lastModifiedDateTime' in self.__driveItem:
+            return datetime.fromisoformat(self.__driveItem['lastModifiedDateTime'].replace("Z", "+00:00"))
+
+    def permissions(self, app=GraphApp):
+        result = app.fetchGraph(f"/drives/{self.driveID}/items/{self.id}/permissions")
+        return result
+
+    
     def encapsulate(driveItem):
         if "folder" in driveItem:
             return Folder(driveItem)
@@ -55,6 +69,9 @@ class DriveItem:
 
     def __repr__(self) -> str:
         return str(self)
+
+    def __eq__(self, other) -> bool:
+        return self.path == other.path
     
 class File(DriveItem):
 
@@ -79,15 +96,28 @@ class File(DriveItem):
                         with open(path, "wb") as dl:
                             dl.write(r.content)
                         return path
+    
+    def copyTo(self, to: DriveItem, app: GraphApp=None) -> str:
+        result = app.postGraph(f"/drives/{self.driveID}/items/{self.id}/copy", json={
+            "parentReference": {
+                "driveId": to.driveID,
+                "id": to.id
+            }
+        })
+        return result
+
+
 
 class Folder(DriveItem):
     
     @property
     def path(self) -> str:
-        if 'parentReference' in self._DriveItem__driveItem:
+        if 'parentReference' in self._DriveItem__driveItem and 'path' in self._DriveItem__driveItem['parentReference']:
             return self._DriveItem__driveItem['parentReference']['path'].split(':')[1] + '/' + self.name
-        else:
+        elif 'path' in self._DriveItem__driveItem:
             return self._DriveItem__driveItem['path'].split(':')[1]
+        else:
+            return "/"
 
 def newFolder(app: GraphApp, driveID: str, parentID: str, name: str) -> Folder:
     result = app.postGraph(f"/drives/{driveID}/items/{parentID}/children", json={
@@ -132,3 +162,15 @@ def uploadLargeFile(app: GraphApp, parent: Folder, path: str, size: int) -> File
             })
             bytesSent += len(chunk)
         return File(response)
+
+def copyTo(srcID, srcDriveID, destParentID, destDriveID, app):
+    result = app.postGraph(f"/drives/{srcDriveID}/items/{srcID}/copy?@microsoft.graph.conflictBehavior=replace", json={
+        "parentReference": {
+            "driveId": destDriveID,
+            "id": destParentID
+        }
+    })
+    return result
+
+def delete(driveID, itemID, app):
+    return app.deleteGraph(f"/drives/{driveID}/items/{itemID}")
