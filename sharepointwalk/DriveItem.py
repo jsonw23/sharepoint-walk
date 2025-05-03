@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 import mimetypes
 import requests
 import os
@@ -125,7 +126,9 @@ def newFolder(app: GraphApp, driveID: str, parentID: str, name: str) -> Folder:
         "folder": { },
         "@microsoft.graph.conflictBehavior": "rename"
     })
-    return Folder(result)
+    json_str = result.content.decode('utf-8')
+    content = json.loads(json_str)
+    return Folder(content)
 
 def uploadFile(app: GraphApp, parentFolder: Folder, path: str) -> File:
     (type, _) = mimetypes.guess_type(path)
